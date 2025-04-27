@@ -51,25 +51,24 @@ ax2.set_ylabel('Count')
 st.pyplot(fig2)
 
 # Display top 10 popular genres
-st.subheader("🔍 Top 10 Genres")
-# Check if 'genres' column exists
-if 'genres' in df.columns:
-    genres_count = extract_genres(df['genres'])
-    top_10_genres = dict(genres_count.most_common(10))
+    st.subheader("🔍 Top 10 Genres")
+    
+    # Check if 'genres' column exists
+    if 'genres' in df.columns:
+        genres_count = extract_genres(df['genres'])
+        top_10_genres = dict(genres_count.most_common(10))
 
-    fig3, ax3 = plt.subplots(figsize=(8, 6))
-    ax3.bar(top_10_genres.keys(), top_10_genres.values(), color='#ff6f61')
-    ax3.set_title('Top 10 Netflix Genres')
-    ax3.set_xlabel('Genres')
-    ax3.set_ylabel('Frequency')
-    plt.xticks(rotation=45)
-    st.pyplot(fig3)
+        fig3, ax3 = plt.subplots(figsize=(8, 6))
+        ax3.bar(top_10_genres.keys(), top_10_genres.values(), color='#ff6f61')
+        ax3.set_title('Top 10 Netflix Genres')
+        ax3.set_xlabel('Genres')
+        ax3.set_ylabel('Frequency')
+        plt.xticks(rotation=45)
+        st.pyplot(fig3)
+    else:
+        st.error("The 'genres' column is missing in the dataset!")
 else:
-     # If 'genres' column is missing, show an error message
-    st.error("The 'genres' column is missing in the dataset! Please check the column names.")
-    st.write("Here are the available columns in the dataset:")
-    st.write(df.columns)  # Show available columns for debugging
-
+    st.info("Please upload a CSV file to get started.")
 # Display the table of filtered data
 st.subheader("📋 Netflix Titles Preview")
 st.dataframe(df[['title', 'type', 'year_added', 'rating']].head())
