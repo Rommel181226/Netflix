@@ -11,7 +11,7 @@ df['year_added'] = df['date_added'].dt.year
 df['month_added'] = df['date_added'].dt.month
 
 # Check column names
-#st.write("Columns in DataFrame:", df.columns)
+st.write("Columns in DataFrame:", df.columns)
 
 # Genre extractor function
 def extract_genres(genre_series):
@@ -66,8 +66,7 @@ if 'genres' in df.columns:
     st.pyplot(fig3)
 else:
     st.error("The 'genres' column is missing in the dataset!")
-else:
-    st.info("Please upload a CSV file to get started.")
+
 # Display the table of filtered data
 st.subheader("📋 Netflix Titles Preview")
 st.dataframe(df[['title', 'type', 'year_added', 'rating']].head())
@@ -75,3 +74,4 @@ st.dataframe(df[['title', 'type', 'year_added', 'rating']].head())
 # Add a download button for the filtered data
 csv = df[['title', 'type', 'year_added', 'rating']].to_csv(index=False)
 st.download_button(label="Download Filtered Data", data=csv, file_name='filtered_netflix_titles.csv', mime='text/csv')
+
