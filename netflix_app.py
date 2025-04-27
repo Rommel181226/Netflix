@@ -65,7 +65,10 @@ if 'genres' in df.columns:
     plt.xticks(rotation=45)
     st.pyplot(fig3)
 else:
-    st.error("The 'genres' column is missing in the dataset!")
+     # If 'genres' column is missing, show an error message
+    st.error("The 'genres' column is missing in the dataset! Please check the column names.")
+    st.write("Here are the available columns in the dataset:")
+    st.write(df.columns)  # Show available columns for debugging
 
 # Display the table of filtered data
 st.subheader("📋 Netflix Titles Preview")
