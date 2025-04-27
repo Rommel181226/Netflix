@@ -11,7 +11,7 @@ df['year_added'] = df['date_added'].dt.year
 df['month_added'] = df['date_added'].dt.month
 
 # Check column names
-st.write("Columns in DataFrame:", df.columns)
+#st.write("Columns in DataFrame:", df.columns)
 
 # Genre extractor function
 def extract_genres(genre_series):
