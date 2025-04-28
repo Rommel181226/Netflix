@@ -1,6 +1,8 @@
 import streamlit as st
 import pandas as pd
 import plotly.express as px
+from wordcloud import WordCloud
+import matplotlib.pyplot as plt
 
 # Load Netflix Data
 @st.cache_data
@@ -52,7 +54,13 @@ with col3:
 st.markdown("---")
 
 # Tabs for better layout
-tab1, tab2, tab3 = st.tabs(["Overview 📊", "Genre Insights 🎭", "Movie Durations ⏱️"])
+tab1, tab2, tab3, tab4, tab5 = st.tabs([
+    "Overview 📊", 
+    "Genre Insights 🎭", 
+    "Movie Durations ⏱️", 
+    "Ratings Analysis 🎯", 
+    "Country Insights 🌍"
+])
 
 with tab1:
     st.subheader("Titles by Release Year")
@@ -65,6 +73,16 @@ with tab1:
         template="plotly_dark",
     )
     st.plotly_chart(fig_year, use_container_width=True)
+
+    st.subheader("Content Type Distribution")
+    type_counts = filtered_df['type'].value_counts()
+    fig_type = px.pie(
+        names=type_counts.index,
+        values=type_counts.values,
+        title="Movies vs TV Shows",
+        color_discrete_sequence=px.colors.sequential.RdBu
+    )
+    st.plotly_chart(fig_type, use_container_width=True)
 
 with tab2:
     st.subheader("Top 10 Genres")
@@ -81,6 +99,18 @@ with tab2:
     )
     st.plotly_chart(fig_genre, use_container_width=True)
 
+    st.subheader("Title Word Cloud")
+    text = " ".join(filtered_df['title'].dropna())
+    wordcloud = WordCloud(
+        background_color='white',
+        max_words=100,
+        colormap='Reds'
+    ).generate(text)
+    fig_wc, ax = plt.subplots()
+    ax.imshow(wordcloud, interpolation='bilinear')
+    ax.axis('off')
+    st.pyplot(fig_wc)
+
 with tab3:
     st.subheader("Longest Movies on Netflix")
     if 'duration' in df.columns:
@@ -88,8 +118,46 @@ with tab3:
         movies_df['duration_mins'] = movies_df['duration'].str.extract('(\d+)').astype(float)
         longest_movies = movies_df.sort_values('duration_mins', ascending=False).head(10)
         st.dataframe(longest_movies[['title', 'duration', 'listed_in', 'release_year']])
+
+        avg_duration = movies_df['duration_mins'].mean()
+        st.metric("Average Movie Duration (minutes)", f"{avg_duration:.2f}")
     else:
         st.warning("Duration column is missing in the dataset.")
+
+with tab4:
+    st.subheader("Ratings Distribution")
+    if 'rating' in df.columns:
+        ratings_count = filtered_df['rating'].value_counts().head(10)
+        fig_ratings = px.bar(
+            x=ratings_count.index,
+            y=ratings_count.values,
+            labels={'x': 'Rating', 'y': 'Number of Titles'},
+            title="Top 10 Ratings on Netflix",
+            color=ratings_count.values,
+            color_continuous_scale='blues',
+            template="plotly_white"
+        )
+        st.plotly_chart(fig_ratings, use_container_width=True)
+    else:
+        st.warning("Rating column not found.")
+
+with tab5:
+    st.subheader("Top Countries Producing Content")
+    if 'country' in df.columns:
+        top_countries = filtered_df['country'].value_counts().head(10)
+        fig_country = px.bar(
+            x=top_countries.values,
+            y=top_countries.index,
+            orientation='h',
+            labels={'x': 'Number of Titles', 'y': 'Country'},
+            title="Top Countries by Number of Titles",
+            template="plotly_white",
+            color=top_countries.values,
+            color_continuous_scale='greens'
+        )
+        st.plotly_chart(fig_country, use_container_width=True)
+    else:
+        st.warning("Country data not available.")
 
 st.markdown("---")
 st.caption("Built with ❤️ using Streamlit | Data: Netflix Titles")
