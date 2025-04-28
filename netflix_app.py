@@ -4,6 +4,31 @@ import plotly.express as px
 from wordcloud import WordCloud
 import matplotlib.pyplot as plt
 
+# Set Streamlit page config
+st.set_page_config(
+    page_title="Netflix Dashboard",
+    page_icon="🎬",
+    layout="wide",
+    initial_sidebar_state="expanded"
+)
+
+# Custom background using Streamlit HTML hack
+def add_bg_from_url():
+    st.markdown(
+         f"""
+         <style>
+         .stApp {{
+             background-image: url("https://images.unsplash.com/photo-1617384521063-6a7e81d20b6c?ixlib=rb-4.0.3&auto=format&fit=crop&w=1950&q=80");
+             background-attachment: fixed;
+             background-size: cover;
+         }}
+         </style>
+         """,
+         unsafe_allow_html=True
+     )
+
+add_bg_from_url()
+
 # Load Netflix Data
 @st.cache_data
 def load_data():
@@ -38,9 +63,9 @@ filtered_df = df[
     (df['release_year'].between(year_filter[0], year_filter[1]))
 ]
 
-# Main Page
-st.title("🎥 Netflix Data Dashboard")
-st.markdown("An interactive dashboard to explore Netflix titles.")
+# Main Title
+st.title("🎥 Netflix Global Content Dashboard")
+st.markdown("##### Powered by Streamlit + Plotly | Data Source: Netflix Titles")
 
 # KPIs
 col1, col2, col3 = st.columns(3)
@@ -53,17 +78,18 @@ with col3:
 
 st.markdown("---")
 
-# Tabs for better layout
+# Tabs
 tab1, tab2, tab3, tab4, tab5 = st.tabs([
-    "Overview 📊", 
-    "Genre Insights 🎭", 
-    "Movie Durations ⏱️", 
-    "Ratings Analysis 🎯", 
-    "Country Insights 🌍"
+    "📊 Overview", 
+    "🎭 Genre Insights", 
+    "⏱️ Movie Durations", 
+    "🎯 Ratings Analysis", 
+    "🌍 Country Insights"
 ])
 
+# 1. Overview Tab
 with tab1:
-    st.subheader("Titles by Release Year")
+    st.subheader("Titles Released by Year")
     titles_per_year = filtered_df.groupby('release_year').size()
     fig_year = px.area(
         x=titles_per_year.index,
@@ -74,16 +100,17 @@ with tab1:
     )
     st.plotly_chart(fig_year, use_container_width=True)
 
-    st.subheader("Content Type Distribution")
+    st.subheader("Movies vs TV Shows")
     type_counts = filtered_df['type'].value_counts()
     fig_type = px.pie(
         names=type_counts.index,
         values=type_counts.values,
-        title="Movies vs TV Shows",
+        title="Distribution: Movies vs TV Shows",
         color_discrete_sequence=px.colors.sequential.RdBu
     )
     st.plotly_chart(fig_type, use_container_width=True)
 
+# 2. Genre Insights
 with tab2:
     st.subheader("Top 10 Genres")
     top_genres = filtered_df['listed_in'].value_counts().head(10)
@@ -99,7 +126,7 @@ with tab2:
     )
     st.plotly_chart(fig_genre, use_container_width=True)
 
-    st.subheader("Title Word Cloud")
+    st.subheader("Word Cloud of Titles")
     text = " ".join(filtered_df['title'].dropna())
     wordcloud = WordCloud(
         background_color='white',
@@ -111,6 +138,7 @@ with tab2:
     ax.axis('off')
     st.pyplot(fig_wc)
 
+# 3. Movie Durations
 with tab3:
     st.subheader("Longest Movies on Netflix")
     if 'duration' in df.columns:
@@ -124,6 +152,7 @@ with tab3:
     else:
         st.warning("Duration column is missing in the dataset.")
 
+# 4. Ratings Analysis
 with tab4:
     st.subheader("Ratings Distribution")
     if 'rating' in df.columns:
@@ -141,23 +170,33 @@ with tab4:
     else:
         st.warning("Rating column not found.")
 
+# 5. Country Insights (with Choropleth Map)
 with tab5:
-    st.subheader("Top Countries Producing Content")
+    st.subheader("Global Distribution of Netflix Content")
     if 'country' in df.columns:
-        top_countries = filtered_df['country'].value_counts().head(10)
-        fig_country = px.bar(
-            x=top_countries.values,
-            y=top_countries.index,
-            orientation='h',
-            labels={'x': 'Number of Titles', 'y': 'Country'},
-            title="Top Countries by Number of Titles",
+        country_df = filtered_df.copy()
+        country_df['main_country'] = country_df['country'].str.split(',').str[0]
+        
+        country_counts = country_df['main_country'].value_counts().reset_index()
+        country_counts.columns = ['country', 'count']
+
+        fig_choropleth = px.choropleth(
+            country_counts,
+            locations='country',
+            locationmode='country names',
+            color='count',
+            color_continuous_scale='reds',
+            title="Netflix Titles by Country",
+            labels={'count': 'Number of Titles'},
             template="plotly_white",
-            color=top_countries.values,
-            color_continuous_scale='greens'
         )
-        st.plotly_chart(fig_country, use_container_width=True)
+        fig_choropleth.update_layout(
+            margin={"r":0,"t":30,"l":0,"b":0}
+        )
+        st.plotly_chart(fig_choropleth, use_container_width=True)
     else:
         st.warning("Country data not available.")
 
 st.markdown("---")
-st.caption("Built with ❤️ using Streamlit | Data: Netflix Titles")
+st.caption("Built with ❤️ using Streamlit | Netflix Titles Data")
+
