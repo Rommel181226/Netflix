@@ -1,77 +1,92 @@
 import streamlit as st
 import pandas as pd
-import matplotlib.pyplot as plt
-import seaborn as sns
-from collections import Counter
+import plotly.express as px
 
-# Load and preprocess the data
-df = pd.read_csv('netflix_titles.csv')
-df['date_added'] = pd.to_datetime(df['date_added'], errors='coerce')
-df['year_added'] = df['date_added'].dt.year
-df['month_added'] = df['date_added'].dt.month
+# Load Netflix data
+@st.cache_data
+def load_data():
+    df = pd.read_csv('netflix_titles.csv')
+    return df
 
-# Check column names
-st.write("Columns in DataFrame:", df.columns)
+df = load_data()
 
-# Genre extractor function
-def extract_genres(genre_series):
-    genres = genre_series.dropna().str.split(', ')
-    return Counter([genre for sublist in genres for genre in sublist])
+# Sidebar filters
+st.sidebar.header("Filter Netflix Data")
+type_filter = st.sidebar.multiselect(
+    "Select Type",
+    options=df['type'].unique(),
+    default=df['type'].unique()
+)
 
-# Streamlit Layout
-st.title("📺 Netflix Data Analysis")
+genre_filter = st.sidebar.multiselect(
+    "Select Genre",
+    options=df['listed_in'].unique(),
+    default=df['listed_in'].unique()
+)
 
-# Create a sidebar with options
-st.sidebar.header("Filter Options")
-selected_country = st.sidebar.selectbox('Select Country:', ['All'] + list(df['country'].dropna().unique()))
-selected_year = st.sidebar.selectbox('Select Year:', ['All'] + sorted(df['year_added'].dropna().unique().tolist()))
+year_filter = st.sidebar.slider(
+    "Select Release Year",
+    min_value=int(df['release_year'].min()),
+    max_value=int(df['release_year'].max()),
+    value=(2000, 2020)
+)
 
-# Filter data based on the user's choice
-if selected_country != 'All':
-    df = df[df['country'] == selected_country]
+# Filter data based on selections
+filtered_df = df[
+    (df['type'].isin(type_filter)) &
+    (df['listed_in'].isin(genre_filter)) &
+    (df['release_year'].between(year_filter[0], year_filter[1]))
+]
 
-if selected_year != 'All':
-    df = df[df['year_added'] == selected_year]
+# Main dashboard
+st.title("🎬 Netflix Data Dashboard")
 
-# Display a pie chart for Movies vs TV Shows
-st.subheader("📊 Movies vs TV Shows Breakdown")
-fig, ax = plt.subplots(figsize=(6, 6))
-df['type'].value_counts().plot(kind='pie', autopct='%1.1f%%', colors=['#ff6f61', '#6b5b95'], startangle=90, ax=ax)
-ax.set_title('Movies vs TV Shows')
-ax.set_ylabel('')
-st.pyplot(fig)
+# KPIs
+total_titles = filtered_df.shape[0]
+total_movies = filtered_df[filtered_df['type'] == 'Movie'].shape[0]
+total_tvshows = filtered_df[filtered_df['type'] == 'TV Show'].shape[0]
 
-# Display a bar chart for movies by year
-st.subheader("📅 Number of Titles Added by Year")
-fig2, ax2 = plt.subplots(figsize=(8, 6))
-df['year_added'].value_counts().sort_index().plot(kind='bar', color='#6b5b95', ax=ax2)
-ax2.set_title('Number of Titles Added by Year')
-ax2.set_xlabel('Year')
-ax2.set_ylabel('Count')
-st.pyplot(fig2)
+st.metric("Total Titles", total_titles)
+st.metric("Movies", total_movies)
+st.metric("TV Shows", total_tvshows)
 
-# Display top 10 popular genres
-st.subheader("🔍 Top 10 Genres")
-# Check if 'genres' column exists
-if 'genres' in df.columns:
-    genres_count = extract_genres(df['genres'])
-    top_10_genres = dict(genres_count.most_common(10))
+st.markdown("---")
 
-    fig3, ax3 = plt.subplots(figsize=(8, 6))
-    ax3.bar(top_10_genres.keys(), top_10_genres.values(), color='#ff6f61')
-    ax3.set_title('Top 10 Netflix Genres')
-    ax3.set_xlabel('Genres')
-    ax3.set_ylabel('Frequency')
-    plt.xticks(rotation=45)
-    st.pyplot(fig3)
+# Chart: Titles per Genre
+st.subheader("Titles per Genre")
+genre_counts = filtered_df['listed_in'].value_counts().head(10)
+fig_genre = px.bar(
+    x=genre_counts.index,
+    y=genre_counts.values,
+    labels={'x': 'Genre', 'y': 'Number of Titles'},
+    title="Top 10 Genres"
+)
+st.plotly_chart(fig_genre)
+
+# Chart: Titles Released per Year
+st.subheader("Titles Released Over Years")
+titles_per_year = filtered_df.groupby('release_year').size()
+fig_year = px.line(
+    x=titles_per_year.index,
+    y=titles_per_year.values,
+    labels={'x': 'Release Year', 'y': 'Number of Titles'},
+    title="Titles by Release Year"
+)
+st.plotly_chart(fig_year)
+
+# Table: Top 10 Longest Movies
+st.subheader("Top 10 Longest Movies")
+
+# Handle duration column clean-up if needed
+if 'duration' in df.columns:
+    # Only keep movies and extract the numeric minutes
+    movies_df = filtered_df[filtered_df['type'] == 'Movie'].copy()
+    movies_df['duration_mins'] = movies_df['duration'].str.extract('(\d+)').astype(float)
+
+    top_longest = movies_df.sort_values('duration_mins', ascending=False).head(10)
+    st.dataframe(top_longest[['title', 'duration', 'listed_in', 'release_year']])
 else:
-    st.error("The 'genres' column is missing in the dataset!")
+    st.warning("Duration data not available.")
 
-# Display the table of filtered data
-st.subheader("📋 Netflix Titles Preview")
-st.dataframe(df[['title', 'type', 'year_added', 'rating']].head())
 
-# Add a download button for the filtered data
-csv = df[['title', 'type', 'year_added', 'rating']].to_csv(index=False)
-st.download_button(label="Download Filtered Data", data=csv, file_name='filtered_netflix_titles.csv', mime='text/csv')
 
