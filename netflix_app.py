@@ -56,16 +56,7 @@ year_filter = st.sidebar.slider(
     max_value=int(df['release_year'].max()),
     value=(2000, 2020)
 )
-# NEW: Rating filter
-if 'rating' in df.columns:  # Ensure the "rating" column exists in the dataset
-    rating_filter = st.sidebar.multiselect(
-        "Select Rating",
-        options=df['rating'].dropna().unique(),  # Drop NaN values before listing unique ratings
-        default=df['rating'].dropna().unique()  # Default to all available ratings
-    )
-else:
-    st.sidebar.warning("Rating column not found in the dataset.")
-    rating_filter = df['rating'].unique()  # In case the column doesn't exist, fallback to all ratings
+
 # Filter data
 filtered_df = df[
     (df['type'].isin(type_filter)) &
